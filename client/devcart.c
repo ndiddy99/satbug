@@ -8,8 +8,6 @@
 #include <sega_mth.h>
 #include <sega_per.h>
 #include "crc.h"
-#include "release.h"
-
 
 #define USB_FLAGS (*(volatile Uint8*)(0x22200001))
 #define USB_RXF     (1 << 0)
@@ -91,7 +89,6 @@ int devcart_loadfile(char *filename, void *dest) {
 }
 
 void devcart_printstr(char *string) {
-    #if DEVCART_LOAD
     devcart_putbyte(FUNC_PRINT);
     for (int i = 0;; i++) {
         devcart_putbyte(string[i]);
@@ -99,7 +96,6 @@ void devcart_printstr(char *string) {
             break;
         }
     }
-    #endif
 }
 
 void devcart_reset() {

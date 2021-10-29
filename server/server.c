@@ -80,9 +80,7 @@ void server_run(char *directory)
                         filename_buf[filename_cursor++] = tolower(curr_char);
                         if (curr_char == '\0')
                         {
-                            strncpy(path_buf, directory, PATH_BUF_SIZE);
-                            strncat(path_buf, filename_buf, PATH_BUF_SIZE);
-
+                            snprintf(path_buf, PATH_BUF_SIZE, "%s/%s", directory, filename_buf);
                             printf("Requested to upload %s\n", path_buf);
                             if (!devcart_upload(path_buf, 0))
                             {

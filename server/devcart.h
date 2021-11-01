@@ -15,7 +15,8 @@ enum
     FUNC_UPLOAD,
     FUNC_EXEC,
     FUNC_PRINT,
-    FUNC_QUIT
+    FUNC_QUIT,
+    FUNC_CHGDIR
 };
 
 typedef struct ftdi_context ftdi_context_t;

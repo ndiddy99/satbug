@@ -39,8 +39,13 @@
 #define CMD_BUF_SIZE (512)
 static unsigned char cmd_buf[CMD_BUF_SIZE];
 static char filename_buf[FILENAME_MAX];
+
 #define PATH_BUF_SIZE (512)
 static char path_buf[PATH_BUF_SIZE];
+
+#define SUBDIR_BUF_SIZE (9)
+static char subdir_buf[SUBDIR_BUF_SIZE];
+
 //main server loop
 void server_run(char *directory)
 {
@@ -48,6 +53,7 @@ void server_run(char *directory)
     int state = FUNC_NULL;
     int cmd_cursor;
     int filename_cursor;
+    int subdir_cursor;
     unsigned char curr_char;
 
     printf("Started server in %s\n", directory);
@@ -70,6 +76,7 @@ void server_run(char *directory)
                 case FUNC_NULL:
                     state = (int)cmd_buf[cmd_cursor++];
                     filename_cursor = 0; //reset all variables for other states
+                    subdir_cursor = 0;
                     goto start_switch;
                     break;
 
@@ -80,7 +87,12 @@ void server_run(char *directory)
                         filename_buf[filename_cursor++] = tolower(curr_char);
                         if (curr_char == '\0')
                         {
-                            snprintf(path_buf, PATH_BUF_SIZE, "%s/%s", directory, filename_buf);
+                            strcpy(path_buf, directory);
+                            if (subdir_buf[0] != '\0')
+                            {
+                                snprintf(path_buf, PATH_BUF_SIZE, "%s/%s", path_buf, subdir_buf);
+                            }
+                            snprintf(path_buf, PATH_BUF_SIZE, "%s/%s", path_buf, filename_buf);
                             printf("Requested to upload %s\n", path_buf);
                             if (!devcart_upload(path_buf, 0))
                             {
@@ -108,6 +120,25 @@ void server_run(char *directory)
 
                 case FUNC_QUIT:
                     return;
+
+                case FUNC_CHGDIR:
+                    while (cmd_cursor < status)
+                    {
+                        curr_char = cmd_buf[cmd_cursor++];
+                        subdir_buf[subdir_cursor++] = tolower(curr_char);
+                        if (curr_char == '\0')
+                        {
+                            printf("Changing directory to %s\n", subdir_buf);
+                            // ".." means go back to the root directory, so remove the subdir
+                            if (strcmp(subdir_buf, "..") == 0)
+                            {
+                                subdir_buf[0] = '\0';
+                            }
+                            state = FUNC_NULL;
+                            break;
+                        }
+                    }
+                    break;
                 }
             }
         }

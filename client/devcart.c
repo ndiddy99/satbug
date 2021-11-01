@@ -8,6 +8,8 @@
 #include <sega_mth.h>
 #include <sega_per.h>
 #include "crc.h"
+#include "release.h"
+
 
 #define USB_FLAGS (*(volatile Uint8*)(0x22200001))
 #define USB_RXF     (1 << 0)
@@ -20,29 +22,30 @@ enum {
     FUNC_UPLOAD,
     FUNC_EXEC,
     FUNC_PRINT,
-    FUNC_QUIT
+    FUNC_QUIT,
+    FUNC_CHGDIR
 };
 
-static inline Uint8 devcart_getbyte(void) {
+static inline Uint8 Devcart_GetByte(void) {
     while ((USB_FLAGS & USB_RXF) != 0);
     return USB_FIFO;
 }
 
-static Uint32 devcart_getdword(void) {
-    Uint32 tmp = devcart_getbyte();
-    tmp = (tmp << 8) | devcart_getbyte();
-    tmp = (tmp << 8) | devcart_getbyte();
-    tmp = (tmp << 8) | devcart_getbyte();
+static Uint32 Devcart_GetDword(void) {
+    Uint32 tmp = Devcart_GetByte();
+    tmp = (tmp << 8) | Devcart_GetByte();
+    tmp = (tmp << 8) | Devcart_GetByte();
+    tmp = (tmp << 8) | Devcart_GetByte();
 
     return tmp;
 }
 
-static inline void devcart_putbyte(Uint8 byte) {
+static inline void Devcart_PutByte(Uint8 byte) {
     while ((USB_FLAGS & USB_TXE) != 0);
     USB_FIFO = byte;
 }
 
-int devcart_loadfile(char *filename, void *dest) {
+int Devcart_LoadFile(char *filename, void *dest) {
     Uint8 *ptr = (Uint8 *)dest;
     Uint8 letter;
     int len;
@@ -50,22 +53,22 @@ int devcart_loadfile(char *filename, void *dest) {
     crc_t checksum = crc_init();
 
     //tell server we want to download a file
-    devcart_putbyte(FUNC_DOWNLOAD);
+    Devcart_PutByte(FUNC_DOWNLOAD);
     //tell server the filename we want to download
     for (int i = 0;; i++) {
         letter = (Uint8)filename[i];
-        devcart_putbyte(letter);
+        Devcart_PutByte(letter);
         if (letter == '\0') {
             break;
         }
     }
 
     //pc server will send "upload" command back, read that byte
-    devcart_getbyte();
+    Devcart_GetByte();
     //pc server sends address first, this is unnecessary since we're
     //specifying it
-    devcart_getdword();
-    len = (int)devcart_getdword(); //file length
+    Devcart_GetDword();
+    len = (int)Devcart_GetDword(); //file length
 
     for (int i = 0; i < len; i++) {
         // inlining is 20K/s faster
@@ -73,35 +76,45 @@ int devcart_loadfile(char *filename, void *dest) {
         ptr[i] = USB_FIFO;
     }
 
-    readchecksum = devcart_getbyte();
+    readchecksum = Devcart_GetByte();
 
     checksum = crc_update(checksum, ptr, len);
     checksum = crc_finalize(checksum);
 
     if (checksum != readchecksum) {
-        devcart_putbyte(0x1);
+        Devcart_PutByte(0x1);
     }
     else {
-        devcart_putbyte(0);
+        Devcart_PutByte(0);
     }
 
     return (int)len;
 }
 
-void devcart_printstr(char *string) {
-    devcart_putbyte(FUNC_PRINT);
+void Devcart_PrintStr(char *string) {
+    Devcart_PutByte(FUNC_PRINT);
     for (int i = 0;; i++) {
-        devcart_putbyte(string[i]);
+        Devcart_PutByte(string[i]);
         if (string[i] == '\0') {
             break;
         }
     }
 }
 
-void devcart_reset() {
+void Devcart_Reset() {
     // quit server program
-    devcart_putbyte(FUNC_QUIT);
+    Devcart_PutByte(FUNC_QUIT);
     // reset saturn
     PER_SMPC_SYS_RES();
+}
+
+void Devcart_ChangeDir(char *dir) {
+    Devcart_PutByte(FUNC_CHGDIR);
+    for (int i = 0;; i++) {
+        Devcart_PutByte(dir[i]);
+        if (dir[i] == '\0') {
+            break;
+        }
+    }
 }
 

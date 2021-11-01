@@ -2,10 +2,14 @@
 #define DEVCART_H
 
 //loads file with filename specified from computer
-int devcart_loadfile(char *filename, void *dest);
+int Devcart_LoadFile(char *filename, void *dest);
 //prints string to computer
-void devcart_printstr(char *string);
+void Devcart_PrintStr(char *string);
 //reset back to file menu
-void devcart_reset(void);
+void Devcart_Reset(void);
+
+// change to a subdirectory (can only go one subdirectory deep &
+// the name must be 8 or less characters)
+void Devcart_ChangeDir(char *dir);
 
 #endif
